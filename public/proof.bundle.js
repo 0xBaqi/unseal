@@ -80644,9 +80644,10 @@ async function queryOnChainNftToken(contractId, tokenId) {
   return null;
 }
 async function loadSpaces() {
-  log2("Fetching spaces from backend GET /spaces...");
+  const url2 = accountId ? `/spaces?accountId=${encodeURIComponent(accountId)}` : "/spaces";
+  log2(`Fetching spaces from backend GET ${url2}...`);
   try {
-    const res = await fetch("/spaces");
+    const res = await fetch(url2);
     const data3 = await res.json();
     if (data3.ok && Array.isArray(data3.spaces)) {
       currentSpaces = data3.spaces;
@@ -80655,7 +80656,7 @@ async function loadSpaces() {
       const creatorSel = $3("creatorUploadSpace");
       if (vaultSel) {
         vaultSel.innerHTML = currentSpaces.map(
-          (s) => `<option value="${s.spaceId}">${s.name} (${s.spaceId})</option>`
+          (s) => `<option value="${s.spaceId}">${s.name} (${s.spaceId})${s.isPublicDemo ? " \u2014 [Public Demo]" : ""}</option>`
         ).join("");
       }
       if (creatorSel) {
@@ -80670,6 +80671,10 @@ async function loadSpaces() {
   }
 }
 async function updateSelectedSpaceView() {
+  const heroEl = $3("vaultDisconnectedHero");
+  if (heroEl) {
+    heroEl.style.display = accountId ? "none" : "block";
+  }
   const sel = $3("vaultSpaceSelect");
   if (!sel || !sel.value) return;
   const spaceId = sel.value;
@@ -80678,31 +80683,45 @@ async function updateSelectedSpaceView() {
   $3("vaultSpaceName").textContent = space.name || space.spaceId;
   $3("vaultRequiredToken").textContent = space.requiredTokenId || "None";
   $3("vaultContractId").textContent = space.contractId || DEFAULT_CONTRACT_ID;
-  $3("vaultIssuer").textContent = space.issuer || "Unknown";
+  $3("vaultIssuer").textContent = space.issuer || "Confidential Creator";
   const docStatusEl = $3("vaultDocStatus");
-  if (space.hasDocument && space.documentInfo) {
-    docStatusEl.innerHTML = `<span class="badge badge-success">\u{1F4C4} Ready (${formatBytes(space.documentInfo.size)})</span>`;
+  if (space.hasDocument) {
+    if (space.documentInfo && space.documentInfo.size) {
+      docStatusEl.innerHTML = `<span class="badge badge-success">\u{1F4C4} Ready (${formatBytes(space.documentInfo.size)})</span>`;
+    } else {
+      docStatusEl.innerHTML = `<span class="badge badge-success">\u{1F4C4} Ready (Protected PDF)</span>`;
+    }
   } else {
     docStatusEl.innerHTML = `<span class="badge badge-warning">\u26A0\uFE0F No Document Uploaded</span>`;
   }
-  $3("vaultOnChainOwner").textContent = "Querying testnet RPC...";
   const badgeEl = $3("vaultAccessBadge");
   const unlockBtn = $3("btnUnlockDocument");
+  if (!accountId) {
+    $3("vaultOnChainOwner").innerHTML = `<span style="color: var(--text-muted);">\u{1F512} Connect wallet to check pass ownership</span>`;
+    badgeEl.innerHTML = `
+      <div class="badge badge-info" style="font-size: 0.85rem; padding: 0.45rem 0.75rem;">
+        \u{1F512} Connect your NEAR wallet to verify whether your account holds pass "${space.requiredTokenId}".
+      </div>`;
+    if (unlockBtn) unlockBtn.disabled = true;
+    return;
+  }
+  $3("vaultOnChainOwner").textContent = "Querying testnet RPC...";
   const token = await queryOnChainNftToken(space.contractId, space.requiredTokenId);
   if (token) {
-    $3("vaultOnChainOwner").textContent = token.owner_id;
-    if (accountId && token.owner_id === accountId) {
+    if (token.owner_id === accountId) {
+      $3("vaultOnChainOwner").innerHTML = `<strong style="color: var(--success);">${token.owner_id} (You)</strong>`;
       badgeEl.innerHTML = `
         <div class="badge badge-success" style="font-size: 0.85rem; padding: 0.45rem 0.75rem;">
-          \u2713 On-Chain Verified: You own pass "${space.requiredTokenId}"! Ready to unlock.
+          \u2713 On-Chain Verified: Your account (${accountId}) owns pass "${space.requiredTokenId}"! Ready to unlock.
         </div>`;
       if (unlockBtn) unlockBtn.disabled = false;
     } else {
+      $3("vaultOnChainOwner").innerHTML = `<span style="color: #f87171;">Another Account (Not You)</span>`;
       badgeEl.innerHTML = `
         <div class="badge badge-error" style="font-size: 0.85rem; padding: 0.45rem 0.75rem;">
-          \u{1F512} Restricted: Required pass "${space.requiredTokenId}" is owned by "${token.owner_id}".
+          \u{1F512} Access Restricted: Your account (${accountId}) does not hold required pass "${space.requiredTokenId}". Transfer pass on-chain to gain access.
         </div>`;
-      if (unlockBtn) unlockBtn.disabled = !accountId;
+      if (unlockBtn) unlockBtn.disabled = true;
     }
   } else {
     $3("vaultOnChainOwner").textContent = "Token Not Found on Contract";
@@ -80710,6 +80729,47 @@ async function updateSelectedSpaceView() {
       <div class="badge badge-warning" style="font-size: 0.85rem; padding: 0.45rem 0.75rem;">
         \u26A0\uFE0F Token "${space.requiredTokenId}" is not yet minted on contract "${space.contractId}".
       </div>`;
+    if (unlockBtn) unlockBtn.disabled = true;
+  }
+}
+function openWalletModal() {
+  const modal = $3("walletModal");
+  if (modal) {
+    modal.style.display = "flex";
+    detectWallets();
+  }
+}
+function closeWalletModal() {
+  const modal = $3("walletModal");
+  if (modal) modal.style.display = "none";
+}
+function detectWallets() {
+  const statusMeteor = $3("statusMeteor");
+  if (statusMeteor) {
+    const isInstalled = Boolean(window.meteorWallet);
+    statusMeteor.textContent = isInstalled ? "Installed" : "Available";
+    statusMeteor.style.color = isInstalled ? "var(--success)" : "var(--text-muted)";
+  }
+  const statusSender = $3("statusSender");
+  if (statusSender) {
+    const isInstalled = Boolean(window.near || window.sender);
+    statusSender.textContent = isInstalled ? "Installed" : "Not Detected";
+    statusSender.style.color = isInstalled ? "var(--success)" : "var(--text-muted)";
+  }
+  const statusNightly = $3("statusNightly");
+  if (statusNightly) {
+    const isInstalled = Boolean(window.nightly?.near);
+    statusNightly.textContent = isInstalled ? "Installed" : "Not Detected";
+    statusNightly.style.color = isInstalled ? "var(--success)" : "var(--text-muted)";
+  }
+}
+function focusManualAccount() {
+  const card = $3("manualConnectCard");
+  if (card) card.style.display = "block";
+  const input2 = $3("txtManualAccount");
+  if (input2) {
+    input2.focus();
+    input2.placeholder = "e.g. baronal.testnet";
   }
 }
 function onAccountConnected(accId) {
@@ -80725,7 +80785,7 @@ function onAccountConnected(accId) {
   if ($3("btnSignChallengeOnly")) $3("btnSignChallengeOnly").disabled = false;
   log2(`Account connected: ${accId}`);
   showAlert(`Connected as ${accId}`, true);
-  updateSelectedSpaceView();
+  loadSpaces();
 }
 function onAccountDisconnected() {
   accountId = null;
@@ -80741,10 +80801,10 @@ function onAccountDisconnected() {
   if ($3("btnSignChallengeOnly")) $3("btnSignChallengeOnly").disabled = true;
   closeDocumentViewer();
   log2("Wallet disconnected.");
-  updateSelectedSpaceView();
+  loadSpaces();
 }
-async function connectWallet() {
-  log2("Opening Meteor Wallet connection...");
+async function connectMeteorWallet() {
+  log2("Connecting to Meteor Wallet on testnet...");
   try {
     if (!selector) await initSelector();
     if (selector) {
@@ -80770,7 +80830,48 @@ async function connectWallet() {
   } catch (err) {
     log2(`Direct Meteor connection warning: ${err.message}`);
   }
-  showAlert('Could not automatically connect. Click "\u2699\uFE0F Manual" to input your testnet account directly.');
+  showAlert('Meteor Wallet extension not detected. You can install Meteor Wallet or click "Manual Account" in the modal to test immediately.');
+}
+async function connectSenderWallet() {
+  if (window.near) {
+    try {
+      log2("Connecting to Sender Wallet...");
+      const response = await window.near.requestSignIn({ contractId: "" });
+      const acc = window.near.accountId || response && response.accessKey && response.accessKey.publicKey;
+      if (acc) {
+        selectorWallet = window.near;
+        onAccountConnected(window.near.accountId || acc);
+        return;
+      }
+    } catch (err) {
+      log2(`Sender connection error: ${err.message}`);
+      showAlert(`Sender Wallet error: ${err.message}`);
+    }
+  } else {
+    showAlert("Sender Wallet extension not detected. Install it from https://sender.org or use Judge Test Mode.");
+  }
+}
+async function connectNightlyWallet() {
+  if (window.nightly?.near) {
+    try {
+      log2("Connecting to Nightly Wallet...");
+      await window.nightly.near.connect();
+      const acc = window.nightly.near.account?.accountId;
+      if (acc) {
+        selectorWallet = window.nightly.near;
+        onAccountConnected(acc);
+        return;
+      }
+    } catch (err) {
+      log2(`Nightly connection error: ${err.message}`);
+      showAlert(`Nightly Wallet error: ${err.message}`);
+    }
+  } else {
+    showAlert("Nightly Wallet extension not detected. Install it from https://nightly.app or use Judge Test Mode.");
+  }
+}
+function connectHotWallet() {
+  showAlert('HOT Wallet testnet support: To test on NEAR Testnet, connect using Meteor Wallet or select "Manual Account (Judge Test Mode)".');
 }
 async function disconnectWallet() {
   try {
@@ -81366,7 +81467,35 @@ function setupUI() {
       if ($3(targetId)) $3(targetId).style.display = "block";
     };
   });
-  if ($3("btnConnect")) $3("btnConnect").onclick = connectWallet;
+  if ($3("btnConnect")) $3("btnConnect").onclick = openWalletModal;
+  if ($3("btnHeroConnect")) $3("btnHeroConnect").onclick = openWalletModal;
+  if ($3("btnCloseWalletModal")) $3("btnCloseWalletModal").onclick = closeWalletModal;
+  if ($3("walletOptMeteor")) $3("walletOptMeteor").onclick = () => {
+    closeWalletModal();
+    connectMeteorWallet();
+  };
+  if ($3("walletOptSender")) $3("walletOptSender").onclick = () => {
+    closeWalletModal();
+    connectSenderWallet();
+  };
+  if ($3("walletOptNightly")) $3("walletOptNightly").onclick = () => {
+    closeWalletModal();
+    connectNightlyWallet();
+  };
+  if ($3("walletOptHot")) $3("walletOptHot").onclick = () => {
+    closeWalletModal();
+    connectHotWallet();
+  };
+  if ($3("walletOptManual")) $3("walletOptManual").onclick = () => {
+    closeWalletModal();
+    focusManualAccount();
+  };
+  const walletModal = $3("walletModal");
+  if (walletModal) {
+    walletModal.onclick = (e) => {
+      if (e.target === walletModal) closeWalletModal();
+    };
+  }
   if ($3("btnDisconnect")) $3("btnDisconnect").onclick = disconnectWallet;
   if ($3("btnToggleManual")) {
     $3("btnToggleManual").onclick = () => {

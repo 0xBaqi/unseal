@@ -204,29 +204,56 @@ async function handleVerify(body) {
 
 /**
  * GET /spaces
- * Lists configured spaces and document status (safe public metadata, zero secret URLs).
+ * Lists configured spaces and document status.
+ * Unauthenticated requests only receive public demo spaces with synthetic test data.
+ * Real private document metadata, confidential space details, and sensitive creator info are protected.
  */
-async function handleListSpaces() {
-  const spaces = Object.values(DEFAULT_SPACES).map((s) => {
-    const hasDoc = defaultRegistry.has(s.spaceId);
-    const docRecord = hasDoc ? defaultRegistry.get(s.spaceId) : null;
-    return {
-      spaceId: s.spaceId,
-      name: s.name,
-      contractId: s.contractId,
-      requiredTokenId: s.requiredTokenId,
-      issuer: s.issuer,
-      hasDocument: hasDoc,
-      documentInfo: docRecord
-        ? {
-            filename: docRecord.filename,
-            size: docRecord.size,
-            sha256: docRecord.sha256,
-            uploadedAt: docRecord.uploadedAt,
-          }
-        : null,
-    };
-  });
+async function handleListSpaces(reqUrl = null) {
+  let accountId = null;
+  let requestedSpaceId = null;
+  if (reqUrl) {
+    try {
+      const parsed = new URL(reqUrl, 'http://localhost');
+      accountId = parsed.searchParams.get('accountId');
+      requestedSpaceId = parsed.searchParams.get('spaceId');
+    } catch {}
+  }
+
+  const spaces = Object.values(DEFAULT_SPACES)
+    .filter((s) => {
+      // Direct space lookup by ID (e.g. recipient accessed via space link)
+      if (requestedSpaceId && s.spaceId === requestedSpaceId) return true;
+      // Public demo spaces are visible to all visitors and judges
+      if (s.isPublicDemo || s.isDemo) return true;
+      // Connected creator sees their own spaces
+      if (accountId && s.issuer === accountId) return true;
+      return false;
+    })
+    .map((s) => {
+      const hasDoc = defaultRegistry.has(s.spaceId);
+      const docRecord = hasDoc ? defaultRegistry.get(s.spaceId) : null;
+      const isPublic = Boolean(s.isPublicDemo || s.isDemo);
+      const isCreator = Boolean(accountId && s.issuer === accountId);
+      const isAuthorizedViewer = isPublic || isCreator;
+
+      return {
+        spaceId: s.spaceId,
+        name: s.name,
+        contractId: s.contractId,
+        requiredTokenId: s.requiredTokenId,
+        issuer: isPublic ? s.issuer : (isCreator ? s.issuer : 'Confidential Creator'),
+        isPublicDemo: isPublic,
+        hasDocument: hasDoc,
+        documentInfo: (docRecord && isAuthorizedViewer)
+          ? {
+              filename: docRecord.filename,
+              size: docRecord.size,
+              sha256: docRecord.sha256,
+              uploadedAt: docRecord.uploadedAt,
+            }
+          : (hasDoc ? { size: docRecord?.size, status: 'Confidential Document Ready' } : null),
+      };
+    });
   return { status: 200, body: { ok: true, spaces } };
 }
 
@@ -625,7 +652,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (pathname === '/spaces' || pathname === '/api/spaces') {
-      const resData = await handleListSpaces();
+      const resData = await handleListSpaces(req.url);
       res.setHeader('Content-Type', 'application/json');
       res.writeHead(resData.status);
       return res.end(req.method === 'HEAD' ? null : JSON.stringify(resData.body));

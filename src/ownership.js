@@ -17,12 +17,13 @@ import { TESTNET_RPC_URL, createProvider } from './verifier.js';
 export const DEFAULT_SPACES = {
   'space-alpha': {
     spaceId: 'space-alpha',
-    name: 'Unseal Alpha Secret Space',
+    name: 'Unseal Alpha Demo Vault (Synthetic Testnet Space)',
     contractId: process.env.NFT_CONTRACT_ID || 'unseal-nft-55335700.testnet',
     requiredTokenId: 'pass-alpha-1',
     issuer: 'baronal.testnet',
+    isPublicDemo: true,
     secretPayload: {
-      message: 'Welcome to Unseal Alpha Space. Access granted via verified NEP-171 NFT ownership.',
+      message: 'Welcome to Unseal Alpha Demo Space. Access granted via verified NEP-171 NFT ownership.',
       timestamp: new Date().toISOString(),
       clearanceLevel: 'GATE_A3_VERIFIED',
     },
@@ -32,10 +33,11 @@ export const DEFAULT_SPACES = {
   },
   'space-transfer': {
     spaceId: 'space-transfer',
-    name: 'Unseal Transferable Test Space',
+    name: 'Unseal Transferable Demo Space',
     contractId: process.env.NFT_CONTRACT_ID || 'unseal-nft-55335700.testnet',
     requiredTokenId: 'pass-transfer-493545',
     issuer: 'baronal.testnet',
+    isPublicDemo: true,
     secretPayload: {
       message: 'Welcome to Unseal Transfer Test Space. Access granted via transferred NEP-171 NFT pass.',
       timestamp: new Date().toISOString(),
