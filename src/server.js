@@ -37,9 +37,9 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Default S3/R2 client: live if credentials exist, otherwise MockR2Client (dev/test only)
 const liveR2Client = createR2Client();
-if (process.env.NODE_ENV === 'production' && !liveR2Client) {
+if (process.env.NODE_ENV === 'production' && !liveR2Client && process.env.ALLOW_MOCK_STORAGE !== '1') {
   throw new Error(
-    'FATAL: Production environment requires Cloudflare R2 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY). Refusing to start with in-memory MockR2Client.'
+    'FATAL: Production environment requires Cloudflare R2 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY). Refusing to start with in-memory MockR2Client. (Set ALLOW_MOCK_STORAGE=1 to allow synthetic demo fallback).'
   );
 }
 export const defaultS3Client = liveR2Client || new MockR2Client();
