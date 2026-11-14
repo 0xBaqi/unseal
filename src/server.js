@@ -735,16 +735,16 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   server.listen(PORT, HOST, () => {
-    console.log(`[unseal-gate-a] Server listening on http://${HOST}:${PORT}`);
-    console.log(`[unseal-gate-a] Localhost URL:    http://localhost:${PORT}`);
-    console.log(`[unseal-gate-a] WSL Direct IP:    http://172.31.240.19:${PORT}`);
-    console.log(`[unseal-gate-a] GET  /spaces                 — list configured document spaces`);
-    console.log(`[unseal-gate-a] POST /spaces                 — register new space (creator auth)`);
-    console.log(`[unseal-gate-a] POST /challenge              — issue a nonce challenge`);
-    console.log(`[unseal-gate-a] POST /verify                 — verify a NEP-413 signed response`);
-    console.log(`[unseal-gate-a] POST /space/:id/access       — gated space access`);
-    console.log(`[unseal-gate-a] POST /space/:id/upload       — creator-only PDF upload to R2`);
-    console.log(`[unseal-gate-a] POST /space/:id/content      — NFT-gated private PDF delivery`);
+    console.log(`[unseal] Server listening on http://${HOST}:${PORT}`);
+    console.log(`[unseal] Localhost URL:    http://localhost:${PORT}`);
+    console.log(`[unseal] WSL Direct IP:    http://172.31.240.19:${PORT}`);
+    console.log(`[unseal] GET  /spaces                 — list configured document spaces`);
+    console.log(`[unseal] POST /spaces                 — register new space (creator auth)`);
+    console.log(`[unseal] POST /challenge              — issue a nonce challenge`);
+    console.log(`[unseal] POST /verify                 — verify a NEP-413 signed response`);
+    console.log(`[unseal] POST /space/:id/access       — gated space access`);
+    console.log(`[unseal] POST /space/:id/upload       — creator-only PDF upload to R2`);
+    console.log(`[unseal] POST /space/:id/content      — NFT-gated private PDF delivery`);
   });
 }
 

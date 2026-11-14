@@ -1,7 +1,7 @@
 {
-  "name": "unseal-gate-a",
-  "version": "0.1.0",
-  "description": "NEP-413 authentication feasibility proof — Unseal Gate A.2",
+  "name": "unseal",
+  "version": "1.0.0",
+  "description": "Unseal — Decentralized NFT-Gated Confidential Document Vault on NEAR Protocol",
   "type": "module",
   "scripts": {
     "test": "node --test test/**/*.test.js",
