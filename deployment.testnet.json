@@ -1,0 +1,18 @@
+{
+  "network": "testnet",
+  "rpcUrl": "https://archival-rpc.testnet.near.org",
+  "contractId": "unseal-nft-55335700.testnet",
+  "ownerId": "baronal.testnet",
+  "tokenId": "pass-alpha-1",
+  "tokenExtra": "{\"space_id\":\"space-alpha\"}",
+  "transferTokenId": "pass-transfer-proof",
+  "bobAccountId": "bob-55400334.testnet",
+  "transactions": {
+    "faucetAccountCreate": "2eYiZ9RyafZo6wA7QSvwDQm5mvKUWMrDkDPDfxY9xkpn",
+    "deployContract": "CY2GnMEMiyWSMbquG7BqxrWKCeMQfd756cQnS6EyX3bk",
+    "initialize": "GnB9aKuguHg1cZEWSU2tMwZrrA2nan2NfKRJTVsmRYfS",
+    "mintPass": "HfPkxoT2aCdpnYvViBP56ozx2vec8xCBVzChP4BytaVx",
+    "mintTransferPass": "ef2czeYNmDNPiQTvomQboGsH3fMNrdXdAe21APEn8tb"
+  },
+  "deployedAt": "2026-11-08T16:30:14.334Z"
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.testnet*.json
+.cache/
+target/
+contract/target/
+*.wasm
+.env
+data/
+*.tmp.*

@@ -1,0 +1,30 @@
+{
+  "name": "unseal-gate-a",
+  "version": "0.1.0",
+  "description": "NEP-413 authentication feasibility proof — Unseal Gate A.2",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "test:unit": "node --test test/verifier.unit.test.js",
+    "test:rpc": "node --test test/verifier.rpc.test.js",
+    "test:nft:unit": "node --test test/ownership.unit.test.js",
+    "test:nft:rpc": "node --test test/ownership.rpc.test.js",
+    "test:transferee": "node --test test/transferee-auth.rpc.test.js",
+    "test:nft": "node --test test/ownership.unit.test.js test/ownership.rpc.test.js",
+    "build": "node build.js",
+    "serve": "node src/server.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1164.0",
+    "@near-wallet-selector/core": "^10.1.4",
+    "@near-wallet-selector/meteor-wallet": "^10.1.4",
+    "buffer": "^6.0.3",
+    "esbuild": "^0.25.0",
+    "near-api-js": "^7.4.0",
+    "util": "^0.12.5"
+  }
+}

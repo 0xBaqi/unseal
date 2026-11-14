@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unseal — NFT-Gated Private Documents</title>
+  <style>
+    :root {
+      --bg: #090d13;
+      --card-bg: #121820;
+      --card-border: #1f2937;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --accent-subtle: rgba(56, 189, 248, 0.1);
+      --success: #10b981;
+      --success-subtle: rgba(16, 185, 129, 0.12);
+      --danger: #ef4444;
+      --danger-subtle: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
+      --code-bg: #0b0f17;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 1.5rem 1rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      font-size: 1.75rem;
+      background: var(--accent-subtle);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.35rem 0.6rem;
+      border-radius: var(--radius);
+    }
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .brand-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .network-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.65rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--success);
+    }
+    .network-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    /* Wallet Bar */
+    .wallet-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .account-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.45rem 0.85rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      color: var(--text-main);
+    }
+    .account-pill strong {
+      color: var(--accent);
+      font-family: ui-monospace, monospace;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+      padding: 0.55rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: var(--card-bg);
+      border-color: var(--card-border);
+      border-bottom-color: var(--accent);
+      border-bottom-width: 2px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.35rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* Forms & Inputs */
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    input[type="text"], input[type="file"], select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    input[type="file"] {
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+
+    /* Buttons */
+    button {
+      background: var(--accent);
+      color: #0b0f17;
+      border: none;
+      padding: 0.55rem 1.15rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+    button:disabled {
+      background: #1e293b;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+    }
+    button.secondary:hover:not(:disabled) {
+      background: #334155;
+    }
+    button.danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    button.danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+    button.success {
+      background: var(--success);
+      color: #0b0f17;
+    }
+    button.success:hover:not(:disabled) {
+      background: #059669;
+      color: #fff;
+    }
+
+    /* Badges & Status */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-success {
+      background: var(--success-subtle);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-error {
+      background: var(--danger-subtle);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-info {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Info Grids */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .info-item {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+    }
+    .info-label {
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .info-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      word-break: break-all;
+    }
+    .info-value code {
+      font-family: ui-monospace, monospace;
+      color: var(--accent);
+    }
+
+    /* Banner / Alerts */
+    .alert {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .alert-error {
+      background: var(--danger-subtle);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .alert-success {
+      background: var(--success-subtle);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #86efac;
+    }
+
+    /* Code & Logs */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      overflow-x: auto;
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+      color: #7ee787;
+    }
+    .log-box {
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    /* PDF Viewer Container */
+    #viewerContainer {
+      display: none;
+      margin-top: 1rem;
+      background: #000;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    #pdfFrame {
+      width: 100%;
+      height: 650px;
+      border: none;
+      display: block;
+      background: #1e293b;
+    }
+
+    /* Collapsible Manual Connect */
+    #manualConnectCard {
+      display: none;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--card-border);
+    }
+  </style>
+  <script>
+    window.__appLog = function(msg) {
+      console.log('[UNSEAL]', msg);
+      var box = document.getElementById('activityLog');
+      if (box) {
+        var ts = new Date().toISOString().split('T')[1].slice(0, 8);
+        box.textContent = '[' + ts + '] ' + msg + '\n' + box.textContent;
+      }
+    };
+    window.onerror = function(msg, url, line) {
+      window.__appLog('Script error: ' + msg + ' (' + url + ':' + line + ')');
+    };
+  </script>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🔏</div>
+      <div>
+        <div class="brand-title">Unseal</div>
+        <div class="brand-subtitle">NFT-Gated Private Document Vault</div>
+      </div>
+      <div class="network-badge">
+        <span class="network-dot"></span> NEAR Testnet
+      </div>
+    </div>
+
+    <!-- Wallet Connection Bar -->
+    <div class="wallet-bar">
+      <div class="account-pill">
+        <span>Account:</span>
+        <strong id="lblAccount">Not Connected</strong>
+      </div>
+      <button id="btnConnect" type="button">Connect Meteor Wallet</button>
+      <button id="btnDisconnect" type="button" class="secondary" style="display: none;">Disconnect</button>
+      <button id="btnToggleManual" type="button" class="secondary" style="font-size: 0.75rem; padding: 0.4rem 0.6rem;" title="Simulate / Manual Account Input">⚙️ Manual</button>
+    </div>
+  </header>
+
+  <!-- Manual Account Input (For headless/testing environments) -->
+  <div class="card" id="manualConnectCard">
+    <label for="txtManualAccount">Enter Testnet Account ID manually (for headless testing):</label>
+    <div style="display: flex; gap: 0.5rem;">
+      <input type="text" id="txtManualAccount" placeholder="e.g. baronal.testnet or bob-55400334.testnet" style="margin-bottom: 0;" />
+      <button id="btnSetManualAccount" type="button" class="secondary">Set Account</button>
+    </div>
+  </div>
+
+  <!-- Global Alerts -->
+  <div id="globalAlert" class="alert"></div>
+
+  <!-- Navigation Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-vault">📁 Document Vault (Holder View)</button>
+    <button class="tab-btn" data-tab="tab-creator">🛠️ Creator Studio</button>
+    <button class="tab-btn" data-tab="tab-passes">🛡️ Pass & NFT Management</button>
+    <button class="tab-btn" data-tab="tab-audit">🔍 Security & Audit Console</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 1: DOCUMENT VAULT (HOLDER VIEW)                                      -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <section id="tab-vault" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Select Document Space</div>
+        <button id="btnRefreshSpaces" class="secondary" style="font-size: 0.8rem; padding: 0.35rem 0.7rem;">↻ Refresh Spaces</button>
+      </div>
+
+      <label for="vaultSpaceSelect">Configured Spaces:</label>
+      <select id="vaultSpaceSelect">
+        <option value="">Loading spaces from backend...</option>
+      </select>
+
+      <!-- Space Overview Grid -->
+      <div class="info-grid" id="vaultSpaceInfo">
+        <div class="info-item">
+          <div class="info-label">Space Name</div>
+          <div class="info-value" id="vaultSpaceName">—</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Required NFT Pass</div>
+          <div class="info-value"><code id="vaultRequiredToken">—</code></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Contract ID</div>
+          <div class="info-value"><code id="vaultContractId">—</code></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Space Creator (Issuer)</div>
+          <div class="info-value"><code id="vaultIssuer">—</code></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Live On-Chain Owner (RPC)</div>
+          <div class="info-value"><code id="vaultOnChainOwner">Querying RPC...</code></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Document Status</div>
+          <div class="info-value" id="vaultDocStatus">Checking...</div>
+        </div>
+      </div>
+
+      <!-- Live Access Policy Badge -->
+      <div id="vaultAccessBadge" style="margin-bottom: 1.25rem;"></div>
+
+      <!-- Action Button -->
+      <div>
+        <button id="btnUnlockDocument" type="button" class="success" style="font-size: 1rem; padding: 0.7rem 1.4rem;" disabled>
+          🔓 Authenticate & Unlock Private Document
+        </button>
+        <span id="vaultUnlockStatus" style="margin-left: 0.75rem; font-size: 0.85rem; color: var(--text-muted);"></span>
+      </div>
+    </div>
+
+    <!-- In-Browser Secure PDF Viewer -->
+    <div id="viewerContainer">
+      <div class="viewer-header">
+        <div>
+          <span style="font-weight: 700; color: #fff;" id="viewerDocTitle">Confidential Document</span>
+          <span class="badge badge-info" id="viewerDocSize" style="margin-left: 0.5rem;">—</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-family: ui-monospace, monospace;" id="viewerDocSha256"></span>
+          <button id="btnCloseViewer" class="danger" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">✕ Close Document</button>
+        </div>
+      </div>
+      <iframe id="pdfFrame" title="Private Document Viewer"></iframe>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 2: CREATOR STUDIO                                                    -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <section id="tab-creator" class="tab-content" style="display: none;">
+    <!-- Upload Document Card -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.5rem;">1. Upload Private PDF Document</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Upload a confidential PDF directly to private R2 storage. Enforces creator-only space policy via NEP-413 authentication, magic bytes (<code>%PDF-</code>), and strict 15MB file limit.
+      </p>
+
+      <label for="creatorUploadSpace">Select Space to Upload Document:</label>
+      <select id="creatorUploadSpace"></select>
+      <div style="font-size: 0.78rem; color: var(--text-subtle); margin-top: 0.25rem; margin-bottom: 0.85rem;">
+        💡 You must be the space creator to upload. Register a new space in Step 2 below if needed.
+      </div>
+
+      <label for="fileUploadPdf">Choose PDF File:</label>
+      <input type="file" id="fileUploadPdf" accept=".pdf" />
+
+      <div id="fileInfoNotice" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;"></div>
+
+      <button id="btnUploadDoc" type="button" disabled>
+        📤 Sign Challenge & Upload to Private Vault
+      </button>
+
+      <div id="uploadReceipt" style="margin-top: 1rem; display: none;">
+        <label>Upload Confirmation Receipt:</label>
+        <pre id="uploadReceiptJson"></pre>
+      </div>
+    </div>
+
+    <!-- Create Space Card -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.5rem;">2. Register a New Document Space</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Bind a new document space to an on-chain NFT access pass. The connected account becomes the authoritative space creator.
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label for="txtNewSpaceId">Space ID (slug):</label>
+          <input type="text" id="txtNewSpaceId" placeholder="e.g. space-finance" />
+        </div>
+        <div>
+          <label for="txtNewSpaceName">Space Display Name:</label>
+          <input type="text" id="txtNewSpaceName" placeholder="e.g. Confidential Financial Audit" />
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label for="txtNewContractId">NFT Contract ID:</label>
+          <input type="text" id="txtNewContractId" value="unseal-nft-55335700.testnet" />
+        </div>
+        <div>
+          <label for="txtNewTokenId">Required Token ID (Access Pass):</label>
+          <input type="text" id="txtNewTokenId" placeholder="e.g. pass-finance-1" />
+        </div>
+      </div>
+
+      <button id="btnCreateSpace" type="button" class="secondary" disabled>
+        ➕ Register Space (NEP-413 Creator Signature)
+      </button>
+      <span id="createSpaceStatus" style="margin-left: 0.75rem; font-size: 0.85rem;"></span>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 3: PASS & NFT MANAGEMENT                                             -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <section id="tab-passes" class="tab-content" style="display: none;">
+    <!-- Live Token Inspector -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.5rem;">On-Chain Pass Inspector</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        Directly queries the deployed NFT contract via live NEAR testnet RPC at <code>finality: 'final'</code>.
+      </p>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <input type="text" id="txtInspectTokenId" placeholder="e.g. pass-alpha-1 or pass-transfer-493545" value="pass-alpha-1" style="margin-bottom: 0;" />
+        <button id="btnInspectToken" type="button" class="secondary">Inspect On-Chain</button>
+      </div>
+      <pre id="inspectTokenOutput">Enter a token ID and click "Inspect On-Chain" to query live NEAR testnet RPC.</pre>
+    </div>
+
+    <!-- Mint Pass (Creator Only) -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.5rem;">Mint Access Pass (Contract Owner / Creator)</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Mints a new NEP-171 access pass bound to a space. Calls <code>nft_mint</code> with 0.01 NEAR storage deposit.
+      </p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label for="txtMintTokenId">New Token ID:</label>
+          <input type="text" id="txtMintTokenId" placeholder="e.g. pass-alpha-2" />
+        </div>
+        <div>
+          <label for="txtMintRecipient">Recipient Account ID:</label>
+          <input type="text" id="txtMintRecipient" placeholder="e.g. user.testnet" />
+        </div>
+      </div>
+      <label for="txtMintSpaceId">Bound Space ID:</label>
+      <input type="text" id="txtMintSpaceId" value="space-alpha" />
+      <button id="btnMintPass" type="button" class="secondary" disabled>
+        🪙 Mint Access Pass in Wallet
+      </button>
+      <span id="mintStatus" style="margin-left: 0.75rem; font-size: 0.85rem;"></span>
+    </div>
+
+    <!-- Transfer Pass & Live Revocation -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.5rem;">Transfer Pass (Live Instant Revocation Demo)</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Transfer your access pass to another account. Because Unseal queries the NEAR blockchain at <code>finality: 'final'</code> on every access request with zero cache, the previous holder is <strong>immediately revoked with 403 NOT_TOKEN_OWNER</strong>.
+      </p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label for="txtTransferTokenId">Token ID to Transfer:</label>
+          <input type="text" id="txtTransferTokenId" value="pass-alpha-1" />
+        </div>
+        <div>
+          <label for="txtTransferRecipient">Recipient Account ID:</label>
+          <input type="text" id="txtTransferRecipient" placeholder="e.g. bob-55400334.testnet" />
+        </div>
+      </div>
+      <button id="btnTransferPass" type="button" class="danger" disabled>
+        📤 Transfer Pass (1 yoctoNEAR)
+      </button>
+      <span id="transferStatus" style="margin-left: 0.75rem; font-size: 0.85rem;"></span>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 4: SECURITY & AUDIT CONSOLE                                          -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <section id="tab-audit" class="tab-content" style="display: none;">
+    <!-- Direct NEP-413 Test & Captured Vectors -->
+    <div class="card">
+      <div class="card-title">Live Cryptographic NEP-413 Verification</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        Request a 32-byte single-use nonce challenge from <code>POST /challenge</code>, sign in wallet, and verify via <code>POST /verify</code>.
+      </p>
+      <button id="btnSignChallengeOnly" type="button" class="secondary" disabled>
+        ✍️ Sign Challenge & Verify Payload
+      </button>
+      <div id="verifyResultContainer" style="margin-top: 1rem; display: none;">
+        <div id="verifyBadge" style="margin-bottom: 0.5rem;"></div>
+        <label>Verification Response:</label>
+        <pre id="verifyOutput"></pre>
+      </div>
+    </div>
+
+    <!-- Negative Attack Tests -->
+    <div class="card">
+      <div class="card-title">Adversarial Resistance Suite</div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        Verifies backend defense against replay attacks, signature tampering, and phishing recipients using captured vectors:
+      </p>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+        <button id="btnTestReplay" type="button" class="danger" disabled>Test Nonce Replay</button>
+        <button id="btnTestTampered" type="button" class="danger" disabled>Test Tampered Sig</button>
+        <button id="btnTestWrongRecipient" type="button" class="danger" disabled>Test Wrong Recipient</button>
+      </div>
+      <pre id="auditOutput" style="display: none;"></pre>
+    </div>
+
+    <!-- Live Activity Log -->
+    <div class="card">
+      <div class="card-title">Live Application & RPC Activity Log</div>
+      <pre id="activityLog" class="log-box">Application initialized. Ready for wallet connection.</pre>
+    </div>
+  </section>
+
+  <!-- Bundled Application Code -->
+  <script type="module" src="/proof.bundle.js?v=8"></script>
+</body>
+</html>
