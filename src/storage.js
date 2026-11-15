@@ -429,7 +429,11 @@ export async function persistMetadataToR2({ s3Client, bucket = DEFAULT_R2_BUCKET
     return true;
   } catch (err) {
     console.error(`[storage] Failed to persist metadata to R2 (${key}):`, err.message);
-    return false;
+    throw new StorageError(
+      'METADATA_PERSISTENCE_FAILED',
+      `Failed to durably persist metadata to R2 (${key}): ${err.message}`,
+      502
+    );
   }
 }
 
@@ -462,6 +466,6 @@ export async function loadMetadataFromR2({ s3Client, bucket = DEFAULT_R2_BUCKET,
       return null;
     }
     console.warn(`[storage] Notice: Could not load metadata from R2 (${key}):`, err.message);
-    return null;
+    throw err;
   }
 }

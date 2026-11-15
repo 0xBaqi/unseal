@@ -1,9 +1,16 @@
 # Unseal — Production Container Dockerfile
 FROM node:22-alpine
 
-# Install curl, certificates, bash, and cloudflared binary
+# Install curl, certificates, bash, and architecture-appropriate cloudflared binary
 RUN apk add --no-cache curl ca-certificates bash \
-    && curl -L --output /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+    && ARCH=$(uname -m) \
+    && case "$ARCH" in \
+         x86_64) CF_ARCH="amd64" ;; \
+         aarch64|arm64) CF_ARCH="arm64" ;; \
+         armv7l) CF_ARCH="arm" ;; \
+         *) CF_ARCH="amd64" ;; \
+       esac \
+    && curl -L --output /usr/local/bin/cloudflared "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${CF_ARCH}" \
     && chmod +x /usr/local/bin/cloudflared
 
 WORKDIR /app

@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { issueChallenge, consumeChallenge, DEFAULT_TTL_MS } from './challenge.js';
 import { verifyAuth, UNSEAL_RECIPIENT } from './verifier.js';
 import { verifySpaceAccess, DEFAULT_SPACES } from './ownership.js';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import {
   createR2Client,
   MockR2Client,
@@ -71,7 +72,12 @@ export async function loadPersistedData() {
         console.log(`[unseal] Restored ${Object.keys(r2Docs).length} document record(s) from durable R2 storage.`);
       }
     } catch (err) {
-      console.warn('[unseal] R2 metadata restore notice:', err.message);
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[unseal] FATAL: Production startup failed to load durable metadata from Cloudflare R2:', err.message);
+        throw new Error(`Production startup failed: Unable to load durable metadata from Cloudflare R2: ${err.message}`);
+      } else {
+        console.warn('[unseal] R2 metadata restore notice (non-production fallback to local):', err.message);
+      }
     }
   }
 
@@ -142,14 +148,13 @@ export async function persistSpaces() {
     try {
       await atomicWriteJson(SPACES_PERSIST_FILE, DEFAULT_SPACES);
     } catch (err) {
-      console.error('[unseal] Failed to persist spaces.json:', err.message);
+      console.error('[unseal] Failed to persist spaces.json locally:', err.message);
+      if (process.env.NODE_ENV === 'production' && !defaultS3Client) {
+        throw err;
+      }
     }
     if (defaultS3Client) {
-      try {
-        await persistMetadataToR2({ s3Client: defaultS3Client, key: 'metadata/spaces.json', data: DEFAULT_SPACES });
-      } catch (err) {
-        console.error('[unseal] Failed to persist spaces metadata to R2:', err.message);
-      }
+      await persistMetadataToR2({ s3Client: defaultS3Client, key: 'metadata/spaces.json', data: DEFAULT_SPACES });
     }
   });
 }
@@ -163,14 +168,13 @@ export async function persistDocs() {
     try {
       await atomicWriteJson(DOCS_PERSIST_FILE, obj);
     } catch (err) {
-      console.error('[unseal] Failed to persist documents.json:', err.message);
+      console.error('[unseal] Failed to persist documents.json locally:', err.message);
+      if (process.env.NODE_ENV === 'production' && !defaultS3Client) {
+        throw err;
+      }
     }
     if (defaultS3Client) {
-      try {
-        await persistMetadataToR2({ s3Client: defaultS3Client, key: 'metadata/documents.json', data: obj });
-      } catch (err) {
-        console.error('[unseal] Failed to persist documents metadata to R2:', err.message);
-      }
+      await persistMetadataToR2({ s3Client: defaultS3Client, key: 'metadata/documents.json', data: obj });
     }
   });
 }
@@ -459,7 +463,12 @@ async function handleSpaceUpload(
       },
     };
     spacesConfig[spaceId] = space;
-    await persistSpaces();
+    try {
+      await persistSpaces();
+    } catch (persistErr) {
+      delete spacesConfig[spaceId];
+      throw persistErr;
+    }
   } else if (!space.issuer || space.issuer !== accountId) {
     return {
       status: 403,
@@ -483,7 +492,8 @@ async function handleSpaceUpload(
     return { status: 400, body: { ok: false, code: 'INVALID_BASE64', error: 'pdfBase64 is not valid base64' } };
   }
 
-  // 4. Upload to private R2 storage
+  // 4. Upload to private R2 storage with transactional rollback
+  const previousRecord = registry.get(spaceId);
   try {
     const uploadReceipt = await uploadSpacePdf({
       s3Client,
@@ -495,7 +505,31 @@ async function handleSpaceUpload(
       registry,
     });
 
-    await persistDocs();
+    try {
+      await persistDocs();
+    } catch (persistErr) {
+      // Rollback in-memory registry record
+      if (previousRecord) {
+        registry.set(spaceId, previousRecord);
+      } else {
+        registry.delete(spaceId);
+      }
+      // Cleanup newly uploaded R2 object to prevent orphaned storage
+      const newlyCreatedKey = registry.get(spaceId)?.objectKey;
+      if (newlyCreatedKey && s3Client) {
+        try {
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: space.bucket || DEFAULT_R2_BUCKET,
+              Key: newlyCreatedKey,
+            })
+          );
+        } catch (cleanupErr) {
+          console.error('[unseal] Warning: Failed to clean up orphaned R2 object:', cleanupErr.message);
+        }
+      }
+      throw persistErr;
+    }
 
     return {
       status: 200,
