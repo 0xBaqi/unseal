@@ -402,3 +402,66 @@ export async function downloadSpacePdf({
     throw new StorageError('R2_STORAGE_ERROR', `Failed to retrieve object from private storage: ${err.message}`, 502);
   }
 }
+
+// ── Durable R2 Metadata Persistence ────────────────────────────────────────
+
+/**
+ * Persists application metadata (spaces/documents) durably to Cloudflare R2.
+ * @param {object} params
+ * @param {S3Client|MockR2Client} params.s3Client
+ * @param {string} [params.bucket]
+ * @param {string} params.key
+ * @param {object} params.data
+ * @returns {Promise<boolean>}
+ */
+export async function persistMetadataToR2({ s3Client, bucket = DEFAULT_R2_BUCKET, key, data }) {
+  if (!s3Client) return false;
+  try {
+    const body = Buffer.from(JSON.stringify(data, null, 2), 'utf8');
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: 'application/json',
+      })
+    );
+    return true;
+  } catch (err) {
+    console.error(`[storage] Failed to persist metadata to R2 (${key}):`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Loads durable application metadata from Cloudflare R2 across restarts.
+ * @param {object} params
+ * @param {S3Client|MockR2Client} params.s3Client
+ * @param {string} [params.bucket]
+ * @param {string} params.key
+ * @returns {Promise<object|null>}
+ */
+export async function loadMetadataFromR2({ s3Client, bucket = DEFAULT_R2_BUCKET, key }) {
+  if (!s3Client) return null;
+  try {
+    const res = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+    if (!res || !res.Body) return null;
+    const chunks = [];
+    for await (const chunk of res.Body) {
+      chunks.push(chunk);
+    }
+    const str = Buffer.concat(chunks).toString('utf8');
+    return JSON.parse(str);
+  } catch (err) {
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
+    console.warn(`[storage] Notice: Could not load metadata from R2 (${key}):`, err.message);
+    return null;
+  }
+}

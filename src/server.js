@@ -28,6 +28,8 @@ import {
   downloadSpacePdf,
   defaultRegistry,
   DEFAULT_R2_BUCKET,
+  persistMetadataToR2,
+  loadMetadataFromR2,
 } from './storage.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -52,6 +54,28 @@ const SPACES_PERSIST_FILE = join(DATA_DIR, 'spaces.json');
 const DOCS_PERSIST_FILE = join(DATA_DIR, 'documents.json');
 
 export async function loadPersistedData() {
+  // 1. Try loading durable metadata from Cloudflare R2 first
+  if (defaultS3Client) {
+    try {
+      const r2Spaces = await loadMetadataFromR2({ s3Client: defaultS3Client, key: 'metadata/spaces.json' });
+      if (r2Spaces && typeof r2Spaces === 'object') {
+        Object.assign(DEFAULT_SPACES, r2Spaces);
+        console.log(`[unseal] Restored ${Object.keys(r2Spaces).length} space(s) from durable R2 storage.`);
+      }
+
+      const r2Docs = await loadMetadataFromR2({ s3Client: defaultS3Client, key: 'metadata/documents.json' });
+      if (r2Docs && typeof r2Docs === 'object') {
+        for (const [k, v] of Object.entries(r2Docs)) {
+          defaultRegistry.set(k, v);
+        }
+        console.log(`[unseal] Restored ${Object.keys(r2Docs).length} document record(s) from durable R2 storage.`);
+      }
+    } catch (err) {
+      console.warn('[unseal] R2 metadata restore notice:', err.message);
+    }
+  }
+
+  // 2. Local disk fallback (for development / offline tests)
   try {
     const data = await readFile(SPACES_PERSIST_FILE, 'utf8');
     const parsed = JSON.parse(data);
@@ -62,7 +86,9 @@ export async function loadPersistedData() {
     const data = await readFile(DOCS_PERSIST_FILE, 'utf8');
     const parsed = JSON.parse(data);
     for (const [k, v] of Object.entries(parsed)) {
-      defaultRegistry.set(k, v);
+      if (!defaultRegistry.has(k)) {
+        defaultRegistry.set(k, v);
+      }
     }
   } catch {}
 }
@@ -116,21 +142,35 @@ export async function persistSpaces() {
     try {
       await atomicWriteJson(SPACES_PERSIST_FILE, DEFAULT_SPACES);
     } catch (err) {
-      console.error('[unseal-gate-a] Failed to persist spaces.json:', err.message);
+      console.error('[unseal] Failed to persist spaces.json:', err.message);
+    }
+    if (defaultS3Client) {
+      try {
+        await persistMetadataToR2({ s3Client: defaultS3Client, key: 'metadata/spaces.json', data: DEFAULT_SPACES });
+      } catch (err) {
+        console.error('[unseal] Failed to persist spaces metadata to R2:', err.message);
+      }
     }
   });
 }
 
 export async function persistDocs() {
   return persistenceLock.acquire(async () => {
+    const obj = {};
+    for (const [k, v] of defaultRegistry.store.entries()) {
+      obj[k] = v;
+    }
     try {
-      const obj = {};
-      for (const [k, v] of defaultRegistry.store.entries()) {
-        obj[k] = v;
-      }
       await atomicWriteJson(DOCS_PERSIST_FILE, obj);
     } catch (err) {
-      console.error('[unseal-gate-a] Failed to persist documents.json:', err.message);
+      console.error('[unseal] Failed to persist documents.json:', err.message);
+    }
+    if (defaultS3Client) {
+      try {
+        await persistMetadataToR2({ s3Client: defaultS3Client, key: 'metadata/documents.json', data: obj });
+      } catch (err) {
+        console.error('[unseal] Failed to persist documents metadata to R2:', err.message);
+      }
     }
   });
 }
