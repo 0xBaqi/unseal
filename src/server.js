@@ -37,10 +37,12 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Default S3/R2 client: live if credentials exist, otherwise MockR2Client (dev/test only)
 const liveR2Client = createR2Client();
-if (process.env.NODE_ENV === 'production' && !liveR2Client && process.env.ALLOW_MOCK_STORAGE !== '1') {
-  throw new Error(
-    'FATAL: Production environment requires Cloudflare R2 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY). Refusing to start with in-memory MockR2Client. (Set ALLOW_MOCK_STORAGE=1 to allow synthetic demo fallback).'
-  );
+if (process.env.NODE_ENV === 'production') {
+  if (!liveR2Client) {
+    throw new Error(
+      'FATAL: Production environment requires Cloudflare R2 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY). Mock storage is strictly disabled in production.'
+    );
+  }
 }
 export const defaultS3Client = liveR2Client || new MockR2Client();
 
@@ -648,6 +650,19 @@ const server = createServer(async (req, res) => {
         res.setHeader('Content-Type', 'text/plain');
         res.writeHead(404);
         return res.end(req.method === 'HEAD' ? null : 'Bundle not yet built. Run npm run build.');
+      }
+    }
+
+    if (pathname === '/favicon.svg' || pathname === '/favicon.ico') {
+      try {
+        const content = await readFile(join(PUBLIC_DIR, 'favicon.svg'));
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.writeHead(200);
+        return res.end(req.method === 'HEAD' ? null : content);
+      } catch (err) {
+        res.writeHead(404);
+        return res.end();
       }
     }
 

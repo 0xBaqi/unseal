@@ -160,4 +160,13 @@ describe('Server Routing & Query-String Regression Suite', () => {
       await rm(testFile, { force: true }).catch(() => {});
     }
   });
+
+  it('12. GET /favicon.svg returns SVG icon with HTTP 200 and image/svg+xml', async () => {
+    const res = await fetch(`${baseUrl}/favicon.svg`);
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.headers.get('content-type').includes('image/svg+xml'));
+    const body = await res.text();
+    assert.ok(body.includes('<svg'));
+    assert.ok(body.includes('unsealGlow'));
+  });
 });

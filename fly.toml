@@ -10,7 +10,7 @@ primary_region = "iad"
   HOST = "0.0.0.0"
   NFT_CONTRACT_ID = "unseal-nft-55335700.testnet"
   NEAR_RPC_URL = "https://archival-rpc.testnet.near.org"
-  ALLOW_MOCK_STORAGE = "1"
+  NODE_ENV = "production"
 
 [http_service]
   internal_port = 3000
