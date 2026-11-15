@@ -5,6 +5,7 @@ dist/
 target/
 contract/target/
 *.wasm
-.env
+.env*
+!.env.production.example
 data/
 *.tmp.*
