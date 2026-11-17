@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "unseal",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "r2_buckets": [
+    {
+      "binding": "UNSEAL_PRIVATE",
+      "bucket_name": "unseal-private"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "unseal-db",
+      "database_id": "cc4e19ae-55cb-494d-a189-5d68d879494a"
+    }
+  ],
+  "vars": {
+    "NODE_ENV": "production",
+    "NEAR_RPC_URL": "https://archival-rpc.testnet.near.org",
+    "NFT_CONTRACT_ID": "unseal-nft-55335700.testnet",
+    "UNSEAL_RECIPIENT": "unseal-gate-a.proof"
+  }
+}
